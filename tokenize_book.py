@@ -1,5 +1,5 @@
 SIGNS = ['.', ',', ':', ';', '!', '?', '*', '#', '@', '&', '(', ')',
-         '[', ']', '{', '}', '--']
+         '[', ']', '{', '}', '--', '"']
 BOOK_START = '*** START OF THIS PROJECT GUTENBERG EBOOK'
 BOOK_END = 'End of Project Gutenberg'
 
