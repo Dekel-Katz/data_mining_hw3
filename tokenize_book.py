@@ -24,7 +24,10 @@ def read_wordlist_file(filename):
             if line == '\n':
                 continue
             for sign in SIGNS:
-                line = line.replace(sign, '').replace('\n', '').strip()
+                line = line.replace(sign, '').replace('\n', '')\
+                    .replace('  ', ' ').strip()
+            if line == '':
+                continue
             words = words + line.split(' ')
     return words
 
