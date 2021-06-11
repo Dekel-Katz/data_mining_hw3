@@ -1,5 +1,4 @@
 # IMPORTANT!!! run these 2 for the first time to download!
-# nltk.download('averaged_perceptron_tagger')
 # nltk.download('stopwords')
 
 import matplotlib.pyplot as plt
@@ -14,6 +13,26 @@ SIGNS = ['.', ',', ':', ';', '!', '?', '*', '#', '@', '&', '(', ')',
          '[', ']', '{', '}', '"']
 BOOK_START = '*** START OF THIS PROJECT GUTENBERG EBOOK'
 BOOK_END = 'End of Project Gutenberg'
+
+
+def cut_de_bullshit(filename):
+    text = ""
+    with open(filename, 'r') as txt:
+        cont = 0
+        for line in txt.readlines():
+            if cont == 0 and BOOK_START not in line:
+                continue
+            elif cont == 0 and BOOK_START in line:
+                cont = 1
+                continue
+            if BOOK_END in line:
+                break
+            if line == '\n':
+                continue
+            if line == '':
+                continue
+            text = text + line.replace("\n", " ")
+    return text
 
 
 def read_wordlist_file(filename):
@@ -92,6 +111,7 @@ def extract_adj_plus_noun(words):
     adjective = ['JJ', 'JJS', 'JJR']
     noun = ['NN', 'NNS', 'NNP', 'NNPS']
     word_types = nltk.pos_tag(words)
+    print(word_types)
     phrase_list = []
     for index in range(len(word_types)):
         if word_types[index][1] in adjective:
@@ -129,37 +149,54 @@ def spacy_extract_adj_plus_noun(words):
     nlp = spacy.load("en_core_web_sm")
     doc = nlp(words)
     phrase_list = []
+    inner_ind = -1
     for ind in range(len(doc)):
-        if doc[ind].pos_ == "NOUN" or doc[ind].pos_ == "ADJ":
-            phrase = spacy_recurrsion(doc, ind, [])
-            phrase_list.append(phrase)
+        if ind > inner_ind:
+            if doc[ind].pos_ == "NOUN" or doc[ind].pos_ == "ADJ":
+                phrase, inner_ind = spacy_recurrsion(doc, ind, [])
+                if len(phrase) > 1:
+                    phrase_list.append(" ".join(phrase).lower())
+        else:
+            continue
     return phrase_list
 
 def spacy_recurrsion(words, ind, phrase):
-    if words[ind].pos_ != "NOUN" or words[ind].pos_ != "ADJ":
-        return phrase
+    if words[ind].pos_ != "NOUN" and words[ind].pos_ != "ADJ":
+        return phrase, ind
     # case 2 - yes adj
     if words[ind].pos_ == "ADJ":
-        phrase.append(words[ind])
+        phrase.append(words[ind].text)
         return spacy_recurrsion(words, ind + 1, phrase)
     # case 3 - yes noun
     if words[ind].pos_ == "NOUN":
-        phrase.append(words[ind])
+        phrase.append(words[ind].text)
         return spacy_recurrsion(words, ind + 1, phrase)
+    
+    
+def top_20_phrases(spacy_tokenized):
+    top_20 = {}
+    counter = 0
+    for key, val in spacy_tokenized.items():
+        if counter == 20:
+            return top_20
+        top_20[key] = val
+        counter +=1
 
 
 if __name__ == '__main__':
     text_file = 'around_the_world_in_eighty_days.txt'
+    clean_text = cut_de_bullshit(text_file)
     words = read_wordlist_file(text_file)
-    # print(len(create_token_dict(words)))
-    no_stops_list = remove_stopwords(words)
-    stemm_list = book_stemming(no_stops_list)
-    stemmed_d = create_token_dict(stemm_list)
+    # no_stops_list = remove_stopwords(words)
+    # stemm_list = book_stemming(no_stops_list)
+    # stemmed_d = create_token_dict(stemm_list)
+    spacy_phrases = spacy_extract_adj_plus_noun(clean_text)
+    tokenized_spacy = create_token_dict(spacy_phrases)
+    visualize_doc_ranks(top_20_phrases(tokenized_spacy), len(spacy_phrases))
+        
 
-    test = "google. Sweet peanut butter cookies. Peanut butter jelly " \
-           "sandwich. John is sitting in the oval office."
-
-    print(spacy_extract_adj_plus_noun(test))
+    # test = "google. Sweet peanut butter cookies. Peanut butter jelly " \
+    #        "sandwich. John is sitting in the oval office."
     # visualize_doc_ranks(stemmed_d, len(stemm_list))
     # d = create_token_dict(words)
     # d_no_stops = create_token_dict(no_stops_list)
