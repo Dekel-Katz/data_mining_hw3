@@ -1,8 +1,14 @@
+# IMPORTANT!!! run these 2 for the first time to download!
+# nltk.download('averaged_perceptron_tagger')
+# nltk.download('stopwords')
+
 import matplotlib.pyplot as plt
 import math
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
+import spacy
+
 
 SIGNS = ['.', ',', ':', ';', '!', '?', '*', '#', '@', '&', '(', ')',
          '[', ']', '{', '}', '"']
@@ -119,35 +125,42 @@ def extract_adj_plus_noun(words):
     return phrase_list
 
 
-def recurse_pos_adj_and_noun(words, phrase_lst, phrase):
-    adjective = ['JJ', 'JJS', 'JJR']
-    noun = ['NN', 'NNS', 'NNP', 'NNPS']
-    word_types = nltk.pos_tag(words)
-    phrase = []
-    while len(words) > 0:
-        if word_types[0][1] not in adjective and word_types[0][1] not in noun:
-            if len(phrase) > 2:
-                phrase = ' '.join(phrase)
-                print(phrase)
-                phrase_lst.append(phrase)
-            phrase_lst = recurse_pos_adj_and_noun(words[1:], phrase_lst, [])
-        if word_types[0][1] in adjective:
-            phrase.append(word_types[0][0])
-            phrase_lst = recurse_pos_adj_and_noun(words[1:], phrase_lst, phrase)
-        if word_types[0][1] in noun:
-            phrase.append(word_types[0][0])
-    return phrase_lst
+def spacy_extract_adj_plus_noun(words):
+    nlp = spacy.load("en_core_web_sm")
+    doc = nlp(words)
+    phrase_list = []
+    for ind in range(len(doc)):
+        if doc[ind].pos_ == "NOUN" or doc[ind].pos_ == "ADJ":
+            phrase = spacy_recurrsion(doc, ind, [])
+            phrase_list.append(phrase)
+    return phrase_list
+
+def spacy_recurrsion(words, ind, phrase):
+    if words[ind].pos_ != "NOUN" or words[ind].pos_ != "ADJ":
+        return phrase
+    # case 2 - yes adj
+    if words[ind].pos_ == "ADJ":
+        phrase.append(words[ind])
+        return spacy_recurrsion(words, ind + 1, phrase)
+    # case 3 - yes noun
+    if words[ind].pos_ == "NOUN":
+        phrase.append(words[ind])
+        return spacy_recurrsion(words, ind + 1, phrase)
 
 
 if __name__ == '__main__':
     text_file = 'around_the_world_in_eighty_days.txt'
     words = read_wordlist_file(text_file)
-    print(extract_adj_plus_noun(words))
     # print(len(create_token_dict(words)))
     no_stops_list = remove_stopwords(words)
     stemm_list = book_stemming(no_stops_list)
     stemmed_d = create_token_dict(stemm_list)
-    visualize_doc_ranks(stemmed_d, len(stemm_list))
+
+    test = "google. Sweet peanut butter cookies. Peanut butter jelly " \
+           "sandwich. John is sitting in the oval office."
+
+    print(spacy_extract_adj_plus_noun(test))
+    # visualize_doc_ranks(stemmed_d, len(stemm_list))
     # d = create_token_dict(words)
     # d_no_stops = create_token_dict(no_stops_list)
     # visualize_doc_ranks(d, len(words))
