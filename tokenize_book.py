@@ -1,11 +1,8 @@
-import pandas as pd
 import matplotlib.pyplot as plt
 import math
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
-
-
 
 SIGNS = ['.', ',', ':', ';', '!', '?', '*', '#', '@', '&', '(', ')',
          '[', ']', '{', '}', '"']
@@ -85,8 +82,67 @@ def visualize_doc_ranks(tokens_dict, all_words_count):
     plt.show()
 
 
+def extract_adj_plus_noun(words):
+    adjective = ['JJ', 'JJS', 'JJR']
+    noun = ['NN', 'NNS', 'NNP', 'NNPS']
+    word_types = nltk.pos_tag(words)
+    phrase_list = []
+    for index in range(len(word_types)):
+        if word_types[index][1] in adjective:
+            if word_types[index+1][1] in noun:
+                phrase = word_types[index][0] + ' ' + word_types[index+1][0]
+                adj_index = index - 1
+                adj_list = []
+                while True:
+                    if word_types[adj_index][1] in adjective:
+                        adj_list.append(word_types[adj_index][0])
+                        adj_index -= 1
+                        if adj_index < 0:
+                            break
+                    else:
+                        break
+                for adj in adj_list[0::-1]:
+                    phrase = adj + ' ' + phrase
+                noun_list = []
+                noun_index = index + 1
+                while True:
+                    if word_types[noun_index][1] in noun:
+                        noun_list.append(word_types[noun_index][0])
+                        noun_index += 1
+                        if noun_index == len(word_types):
+                            break
+                    else:
+                        break
+                for no in noun_list[1:]:
+                    phrase = phrase + ' ' + no
+                phrase_list.append(phrase)
+    return phrase_list
+
+
+def recurse_pos_adj_and_noun(words, phrase_lst, phrase):
+    adjective = ['JJ', 'JJS', 'JJR']
+    noun = ['NN', 'NNS', 'NNP', 'NNPS']
+    word_types = nltk.pos_tag(words)
+    phrase = []
+    while len(words) > 0:
+        if word_types[0][1] not in adjective and word_types[0][1] not in noun:
+            if len(phrase) > 2:
+                phrase = ' '.join(phrase)
+                print(phrase)
+                phrase_lst.append(phrase)
+            phrase_lst = recurse_pos_adj_and_noun(words[1:], phrase_lst, [])
+        if word_types[0][1] in adjective:
+            phrase.append(word_types[0][0])
+            phrase_lst = recurse_pos_adj_and_noun(words[1:], phrase_lst, phrase)
+        if word_types[0][1] in noun:
+            phrase.append(word_types[0][0])
+    return phrase_lst
+
+
 if __name__ == '__main__':
-    words = read_wordlist_file('around_the_world_in_eighty_days.txt')
+    text_file = 'around_the_world_in_eighty_days.txt'
+    words = read_wordlist_file(text_file)
+    print(extract_adj_plus_noun(words))
     # print(len(create_token_dict(words)))
     no_stops_list = remove_stopwords(words)
     stemm_list = book_stemming(no_stops_list)
